@@ -1,76 +1,127 @@
 package core
 
 import (
+	"fmt"
+	"gorm.io/gorm"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"runtime"
 	"strings"
+	"sync"
 	"time"
 )
 
-func ExtractIdsFromFile(filename string) ([]string, error) {
-	file, err := ioutil.ReadFile(filename)
-	if err != nil {
-		return []string{}, err
-	}
+var (
+	ErrorType   = "Error"
+	SuccessType = "Success"
+)
 
-	usrIds := strings.Split(string(file), "\n")[1:]
-
-	return usrIds, nil
+type Worker struct {
+	Db         *gorm.DB `gorm:"-"`
+	UsrIDs     []string
+	Workers    int
+	StartIndex int
 }
 
-func WorkerRunner() {
-	usrIds, err := ExtractIdsFromFile("./mock.csv")
+func NewWorker(db *gorm.DB) *Worker {
+	return &Worker{
+		Db:         db,
+		Workers:    10,
+		StartIndex: 1,
+	}
+}
+
+func (w *Worker) ExtractIdsFromFile(filename string) error {
+	file, err := ioutil.ReadFile(filename)
+	if err != nil {
+		return err
+	}
+
+	usrIds := strings.Split(string(file), "\n")[w.StartIndex:]
+
+	for _, usrId := range usrIds {
+		w.UsrIDs = append(w.UsrIDs, usrId)
+	}
+
+	return nil
+}
+
+func (w *Worker) WorkerRunner(done chan bool) {
+	err := w.ExtractIdsFromFile("./gerenciador usuario 1.csv")
 	if err != nil {
 		log.Fatalf("Erro ao extrair o arquivo")
 	}
 
 	client := &http.Client{
-		Timeout: 10 * time.Second,
+		Timeout: 30 * time.Second,
 	}
 
 	in := make(chan string, runtime.NumCPU())
 	returnChannel := make(chan string)
-	done := make(chan bool)
+	wg := sync.WaitGroup{}
 
-	concurrencyMax := 5
+	concurrencyMax := w.Workers
 
 	for process := 1; process <= concurrencyMax; process++ {
-		go processUpdate(in, returnChannel, client, process)
+		wg.Add(1)
+		go w.processUpdate(in, returnChannel, client, process, &wg)
 	}
 
 	go func() {
-		for _, usrId := range usrIds {
+		for _, usrId := range w.UsrIDs {
 			in <- usrId
 		}
 		close(in)
-		log.Println("Producer finished")
 	}()
 
-	for r := range returnChannel {
-		if r == "update done" {
-			done <- true
-			break
+	go func() {
+		for r := range returnChannel {
+			if r == "update done" {
+				done <- true
+			}
 		}
-	}
-	log.Println("Consumer finished")
+	}()
 
+	<-returnChannel
+
+	go func() {
+		for d := range done {
+			if d == true {
+				<-done
+			}
+		}
+	}()
+
+	wg.Wait()
 }
 
-func processUpdate(in chan string, returnChannel chan string, client *http.Client, workerId int) {
-	log.Printf("Worker %d", workerId)
+func (w *Worker) processUpdate(in chan string, returnChannel chan string, client *http.Client, workerId int, wg *sync.WaitGroup) {
+	defer wg.Done()
 	for usrId := range in {
-		log.Printf("Worker ID %d : usr : %s", workerId, usrId)
+		logger := NewLogger(w.Db)
 		r := NewRequester(usrId, client)
 		err := r.DoUpdate()
 
+		logger.RefID = usrId
+		logger.Message = fmt.Sprintf("User [ %s ] has been updated", usrId)
+		logger.Type = SuccessType
+
 		if r.Error != "" || err != nil {
 			log.Println(r.Error)
+			logger.Message = r.Error
+			logger.Type = ErrorType
+		}
+
+		err = logger.AddLog()
+		if err != nil {
+			log.Println(r.Error)
+			logger.Message = r.Error
+			logger.Type = ErrorType
 		}
 
 		returnChannel <- usrId
 	}
-	log.Printf("Worker %d finalizado", workerId)
+
 	returnChannel <- "update done"
 }
