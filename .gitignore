@@ -1,0 +1,3 @@
+.idea/
+.docker/dbdata/
+.docker/fakeapi/node_modules

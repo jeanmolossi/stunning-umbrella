@@ -1,0 +1,45 @@
+version: "3"
+
+services:
+  up_go:
+    container_name: up_go
+    build: .
+    volumes:
+      - .:/go/src
+    networks:
+      - go-script-net
+
+  up_db:
+    container_name: up_db
+    build: ./.docker/mysql
+    command: --innodb-use-native-aio=0
+    restart: always
+    tty: true
+    volumes:
+      - ./.docker/dbdata:/var/lib/mysql
+      - ./.docker/mysql:/docker-entrypoint-initdb.d
+    ports:
+      - "33060:3306"
+    environment:
+      - MYSQL_ROOT_PASSWORD=root
+    networks:
+      - go-script-net
+
+  up_mock_api:
+      container_name: up_mock_api
+      build: ./.docker/fakeapi
+      ports:
+        - "8080:8080"
+      restart: always
+      volumes:
+        - ./.docker/fakeapi:/api
+        - ./.docker/fakeapi/node_modules:/api/node_modules
+      healthcheck:
+        test: http://localhost:8080/ping
+        interval: 1s
+      networks:
+        - go-script-net
+
+networks:
+  go-script-net:
+    driver: bridge
