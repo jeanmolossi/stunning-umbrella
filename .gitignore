@@ -1,3 +1,5 @@
 .idea/
 .docker/dbdata/
 .docker/fakeapi/node_modules
+
+gerenciador usuario *.csv

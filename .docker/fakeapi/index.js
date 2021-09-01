@@ -22,14 +22,18 @@ routes.put('/api/recruiter/:id/access-level', async function (req, res) {
 
     const { nivelAcesso } = req.body
 
+    const delayTime = Math.round(Math.random() * 500)
+
     if(!['admin','recruiter'].includes(nivelAcesso)){
         return res.status(402).json({ message: "Bad request" })
     }
 
     const intId = +id;
 
-    if (intId > 19) {
-        await delay(1000)
+    const notFoundChance = Math.round(Math.random() * 10);
+
+    if (notFoundChance <= 1) {
+        await delay(delayTime)
         return res.status(404).json({
             message: "Not found"
         })
@@ -41,10 +45,10 @@ routes.put('/api/recruiter/:id/access-level', async function (req, res) {
             message: "Bad Gateway"
         })
     } else if (intId === 4) {
-        await delay(1000)
+        await delay(delayTime)
         return res.status(422).json({message: "Unprocessable Entity"})
     } else {
-        await delay(1000)
+        await delay(delayTime)
         console.log("Responds to request ID ", id)
         return res.status(200).json({message: "Ok, foi"})
     }
