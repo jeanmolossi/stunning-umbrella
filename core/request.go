@@ -31,6 +31,10 @@ func (r *Requester) getUrl() string {
 }
 
 func (r *Requester) mountRequest() (*http.Request, error) {
+	//url := r.ping()
+	//method := "GET"
+	//bodyJson := ""
+
 	url := r.getUrl()
 	method := "PUT"
 	bodyJson := `{ "nivelAcesso": "admin" }`
@@ -76,6 +80,12 @@ func (r *Requester) DoUpdate() error {
 	if err != nil {
 		r.Error = fmt.Sprintf("Erro ao ler o corpo da resposta. USR_ID [%s]:: %v", r.UsrId, err.Error())
 		return err
+	}
+
+	if len(string(body)) > 1000 {
+		errorMsg := fmt.Sprintf("A resposta retornou 200 mas o corpo da resposta parece incorreto: [ %s ]", r.UsrId)
+		r.Error = errorMsg
+		return errors.New(errorMsg)
 	}
 
 	log.Printf("Sucesso, USR_ID [ %s ] processado: %v", r.UsrId, string(body))
