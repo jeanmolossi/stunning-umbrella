@@ -26,7 +26,7 @@ func NewRequester(usrId string, client *http.Client) *Requester {
 }
 
 func (r *Requester) getUrl() string {
-	baseURL := "http://localhost:8080"
+	baseURL := "http://up_mock_api:8080"
 	return fmt.Sprintf("%s/api/recruiter/%s/access-level", baseURL, r.UsrId)
 }
 
