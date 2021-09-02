@@ -1,4 +1,5 @@
 const express = require('express');
+const path = require("path");
 
 const app = express();
 app.use(express.json())
@@ -6,7 +7,7 @@ app.use(express.json())
 const routes = express.Router()
 
 routes.get('/ping', function (req, res) {
-    return res.status(200).json({ message: "pong" })
+    return res.status(200).json({message: "pong"})
 })
 
 async function delay(sleepTime) {
@@ -20,17 +21,23 @@ routes.put('/api/recruiter/:id/access-level', async function (req, res) {
 
     console.log("Receiving request to ID ", id)
 
-    const { nivelAcesso } = req.body
+    const {nivelAcesso} = req.body
 
-    const delayTime = Math.round(Math.random() * 500)
+    const delayTime = Math.round(Math.random() * 250)
 
-    if(!['admin','recruiter'].includes(nivelAcesso)){
-        return res.status(402).json({ message: "Bad request" })
+    if (!['admin', 'recruiter'].includes(nivelAcesso)) {
+        return res.status(402).json({message: "Bad request"})
     }
 
     const intId = +id;
 
-    const notFoundChance = Math.round(Math.random() * 100);
+    const [notFoundChance, badGateway, unprocessableEntity, sessionDown] = [
+        Math.round(Math.random() * 100),
+        Math.round(Math.random() * 100),
+        Math.round(Math.random() * 100),
+        Math.round(Math.random() * 100)
+    ]
+
 
     if (notFoundChance <= 1) {
         await delay(delayTime)
@@ -39,14 +46,17 @@ routes.put('/api/recruiter/:id/access-level', async function (req, res) {
         })
     }
 
-    if (intId === 2) {
+    if (badGateway <= 5) {
         await delay(5000)
         return res.status(504).json({
-            message: "Bad Gateway"
+            message: "Gateway Timeout"
         })
-    } else if (intId === 4) {
+    } else if (unprocessableEntity <= 5) {
         await delay(delayTime)
         return res.status(422).json({message: "Unprocessable Entity"})
+    } else if (sessionDown <= 2) {
+        await delay(delayTime)
+        return res.sendFile(path.resolve(__dirname, './session-down.html'))
     } else {
         await delay(delayTime)
         console.log("Responds to request ID ", id)
