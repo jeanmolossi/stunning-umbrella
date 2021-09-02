@@ -2,11 +2,13 @@ package core
 
 import (
 	"fmt"
-	"gorm.io/gorm"
+	"github.com/jinzhu/gorm"
 	"io/ioutil"
 	"log"
 	"net/http"
+	"os"
 	"runtime"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -115,7 +117,7 @@ func (w *Worker) processUpdate(in chan string, returnChannel chan string, client
 
 		err = logger.AddLog()
 		if err != nil {
-			log.Println(r.Error)
+			log.Println(err)
 			logger.Message = r.Error
 			logger.Type = ErrorType
 		}
@@ -124,4 +126,20 @@ func (w *Worker) processUpdate(in chan string, returnChannel chan string, client
 	}
 
 	returnChannel <- "update done"
+}
+
+func (w *Worker) Start() error {
+	done := make(chan bool)
+
+	workers, err := strconv.Atoi(os.Getenv("WORKERS"))
+	if err != nil {
+		return err
+	}
+
+	if workers > 0 {
+		w.Workers = workers
+	}
+	w.WorkerRunner(done)
+
+	return nil
 }
