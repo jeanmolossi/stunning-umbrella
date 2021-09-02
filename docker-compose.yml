@@ -4,6 +4,8 @@ services:
   up_go:
     container_name: up_go
     build: .
+    command: sh -c "top"
+    tty: true
     volumes:
       - .:/go/src
     networks:
