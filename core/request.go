@@ -3,19 +3,25 @@ package core
 import (
 	"errors"
 	"fmt"
+	"github.com/joho/godotenv"
 	"io/ioutil"
 	"log"
 	"net/http"
+	"os"
 	"strings"
-	"sync"
 )
-
-var Mutex = sync.Mutex{}
 
 type Requester struct {
 	UsrId  string
 	Error  string
 	Client *http.Client
+}
+
+func init() {
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatalf("Erro ao carregar .env file")
+	}
 }
 
 func NewRequester(usrId string, client *http.Client) *Requester {
@@ -26,7 +32,7 @@ func NewRequester(usrId string, client *http.Client) *Requester {
 }
 
 func (r *Requester) getUrl() string {
-	baseURL := "http://up_mock_api:8080"
+	baseURL := os.Getenv("BASE_URL")
 	return fmt.Sprintf("%s/api/recruiter/%s/access-level", baseURL, r.UsrId)
 }
 
@@ -49,7 +55,7 @@ func (r *Requester) mountRequest() (*http.Request, error) {
 	}
 
 	request.Header.Add("Content-Type", "application/json")
-	request.Header.Add("Accept", "*/*")
+	request.Header.Add("Accept", "application/json")
 
 	return request, nil
 }
@@ -88,7 +94,9 @@ func (r *Requester) DoUpdate() error {
 		return errors.New(errorMsg)
 	}
 
-	log.Printf("Sucesso, USR_ID [ %s ] processado: %v", r.UsrId, string(body))
+	if r.Error == "" {
+		log.Printf("Sucesso, USR_ID [ %s ] processado: %v", r.UsrId, string(body))
+	}
 
 	return nil
 }
