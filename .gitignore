@@ -3,3 +3,4 @@
 .docker/fakeapi/node_modules
 
 gerenciador usuario *.csv
+.env
