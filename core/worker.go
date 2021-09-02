@@ -48,7 +48,7 @@ func (w *Worker) ExtractIdsFromFile(filename string) error {
 }
 
 func (w *Worker) WorkerRunner(done chan bool) {
-	err := w.ExtractIdsFromFile("./gerenciador usuario 1.csv")
+	err := w.ExtractIdsFromFile("./mock.csv")
 	if err != nil {
 		log.Fatalf("Erro ao extrair o arquivo")
 	}
@@ -65,7 +65,7 @@ func (w *Worker) WorkerRunner(done chan bool) {
 
 	for process := 1; process <= concurrencyMax; process++ {
 		wg.Add(1)
-		go w.processUpdate(in, returnChannel, client, process, &wg)
+		go w.processUpdate(in, returnChannel, client, &wg)
 	}
 
 	go func() {
@@ -96,7 +96,7 @@ func (w *Worker) WorkerRunner(done chan bool) {
 	wg.Wait()
 }
 
-func (w *Worker) processUpdate(in chan string, returnChannel chan string, client *http.Client, workerId int, wg *sync.WaitGroup) {
+func (w *Worker) processUpdate(in chan string, returnChannel chan string, client *http.Client, wg *sync.WaitGroup) {
 	defer wg.Done()
 	for usrId := range in {
 		logger := NewLogger(w.Db)
