@@ -30,7 +30,7 @@ routes.put('/api/recruiter/:id/access-level', async function (req, res) {
 
     const intId = +id;
 
-    const notFoundChance = Math.round(Math.random() * 10);
+    const notFoundChance = Math.round(Math.random() * 100);
 
     if (notFoundChance <= 1) {
         await delay(delayTime)
