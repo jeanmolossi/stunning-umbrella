@@ -32,23 +32,8 @@ func NewWorker(db *gorm.DB) *Worker {
 	return &Worker{
 		Db:         db,
 		Workers:    10,
-		StartIndex: 1,
+		StartIndex: 96000,
 	}
-}
-
-func (w *Worker) ExtractIdsFromFile(filename string) error {
-	file, err := ioutil.ReadFile(filename)
-	if err != nil {
-		return err
-	}
-
-	usrIds := strings.Split(string(file), "\n")[w.StartIndex:]
-
-	for _, usrId := range usrIds {
-		w.UsrIDs = append(w.UsrIDs, usrId)
-	}
-
-	return nil
 }
 
 func (w *Worker) WorkerRunner(done chan bool) {
