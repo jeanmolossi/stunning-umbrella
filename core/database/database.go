@@ -1,14 +1,16 @@
-package core
+package database
 
 import (
+	"fmt"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/mysql"
 	"os"
 	"strconv"
+	"up-planilhas-go/core/logger"
 )
 
 func NewDbConnection() (*gorm.DB, error) {
-	dsn := "root:root@tcp(up_db:3306)/logger_base"
+	dsn := generateDsn()
 	db, err := gorm.Open("mysql", dsn)
 
 	if err != nil {
@@ -20,7 +22,7 @@ func NewDbConnection() (*gorm.DB, error) {
 		return nil, err
 	}
 
-	db.AutoMigrate(&Log{})
+	db.AutoMigrate(&logger.Log{})
 	db.LogMode(shouldEnableLogs)
 	if err != nil {
 		return nil, err
@@ -32,4 +34,14 @@ func NewDbConnection() (*gorm.DB, error) {
 	}
 
 	return db, nil
+}
+
+func generateDsn() string {
+	user := os.Getenv("MYSQL_USER")
+	password := os.Getenv("MYSQL_PASSWORD")
+	host := os.Getenv("MYSQL_HOST")
+	port := os.Getenv("MYSQL_PORT")
+	database := os.Getenv("MYSQL_DATABASE")
+
+	return fmt.Sprintf("%s:%s@tcp(%s:%s)/%s", user, password, host, port, database)
 }
