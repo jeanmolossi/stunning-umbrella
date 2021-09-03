@@ -1,4 +1,4 @@
-package core
+package request
 
 import (
 	"errors"
@@ -12,9 +12,10 @@ import (
 )
 
 type Requester struct {
-	UsrId  string
-	Error  string
-	Client *http.Client
+	UsrId   string
+	Error   string
+	Client  *http.Client
+	baseURL string
 }
 
 func init() {
@@ -26,27 +27,26 @@ func init() {
 
 func NewRequester(usrId string, client *http.Client) *Requester {
 	return &Requester{
-		UsrId:  usrId,
-		Client: client,
+		UsrId:   usrId,
+		Client:  client,
+		baseURL: os.Getenv("BASE_URL"),
 	}
 }
 
 func (r *Requester) getUrl() string {
-	baseURL := os.Getenv("BASE_URL")
-	return fmt.Sprintf("%s/api/recruiter/%s/access-level", baseURL, r.UsrId)
+	return fmt.Sprintf("%s/api/recruiter/%s/access-level", r.baseURL, r.UsrId)
+}
+
+func (r *Requester) ping() (string, string, string) {
+	return fmt.Sprintf("%s/ping", r.baseURL), "GET", ""
 }
 
 func (r *Requester) mountRequest() (*http.Request, error) {
-	//url := r.ping()
-	//method := "GET"
-	//bodyJson := ""
-
 	url := r.getUrl()
 	method := "PUT"
 	bodyJson := `{ "nivelAcesso": "admin" }`
+	// url, method, bodyJson = r.ping()
 	payload := strings.NewReader(bodyJson)
-
-	// log.Printf("Fazendo request como:\n\tcurl -X %s %s\n\t--header 'Content-Type: application/json'\n\t--data '%v'", method, url, bodyJson)
 
 	request, err := http.NewRequest(method, url, payload)
 	if err != nil {
@@ -54,8 +54,13 @@ func (r *Requester) mountRequest() (*http.Request, error) {
 		return nil, err
 	}
 
+	Cookie := fmt.Sprintf("")
+
 	request.Header.Add("Content-Type", "application/json")
 	request.Header.Add("Accept", "application/json")
+	if Cookie != "" {
+		request.Header.Add("Cookie", Cookie)
+	}
 
 	return request, nil
 }
