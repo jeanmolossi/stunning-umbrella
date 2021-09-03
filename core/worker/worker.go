@@ -1,4 +1,4 @@
-package core
+package worker
 
 import (
 	"fmt"
@@ -12,6 +12,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"up-planilhas-go/core/logger"
+	"up-planilhas-go/core/request"
 )
 
 var (
@@ -50,7 +52,7 @@ func (w *Worker) ExtractIdsFromFile(filename string) error {
 }
 
 func (w *Worker) WorkerRunner(done chan bool) {
-	err := w.ExtractIdsFromFile("./mock.csv")
+	err := w.ExtractIdsFromFile()
 	if err != nil {
 		log.Fatalf("Erro ao extrair o arquivo")
 	}
@@ -81,11 +83,10 @@ func (w *Worker) WorkerRunner(done chan bool) {
 		for r := range returnChannel {
 			if r == "update done" {
 				done <- true
+				<-returnChannel
 			}
 		}
 	}()
-
-	<-returnChannel
 
 	go func() {
 		for d := range done {
@@ -101,25 +102,25 @@ func (w *Worker) WorkerRunner(done chan bool) {
 func (w *Worker) processUpdate(in chan string, returnChannel chan string, client *http.Client, wg *sync.WaitGroup) {
 	defer wg.Done()
 	for usrId := range in {
-		logger := NewLogger(w.Db)
-		r := NewRequester(usrId, client)
+		l := logger.NewLogger(w.Db)
+		r := request.NewRequester(usrId, client)
 		err := r.DoUpdate()
 
-		logger.RefID = usrId
-		logger.Message = fmt.Sprintf("User [ %s ] has been updated", usrId)
-		logger.Type = SuccessType
+		l.RefID = usrId
+		l.Message = fmt.Sprintf("User [ %s ] has been updated", usrId)
+		l.Type = SuccessType
 
 		if r.Error != "" || err != nil {
 			log.Println(r.Error)
-			logger.Message = r.Error
-			logger.Type = ErrorType
+			l.Message = r.Error
+			l.Type = ErrorType
 		}
 
-		err = logger.AddLog()
+		err = l.AddLog()
 		if err != nil {
 			log.Println(err)
-			logger.Message = r.Error
-			logger.Type = ErrorType
+			l.Message = r.Error
+			l.Type = ErrorType
 		}
 
 		returnChannel <- usrId
@@ -140,6 +141,22 @@ func (w *Worker) Start() error {
 		w.Workers = workers
 	}
 	w.WorkerRunner(done)
+
+	return nil
+}
+
+func (w *Worker) ExtractIdsFromFile() error {
+	filename := os.Getenv("FILENAME")
+	file, err := ioutil.ReadFile(filename)
+	if err != nil {
+		return err
+	}
+
+	usrIds := strings.Split(string(file), "\n")[w.StartIndex:]
+
+	for _, usrId := range usrIds {
+		w.UsrIDs = append(w.UsrIDs, usrId)
+	}
 
 	return nil
 }
