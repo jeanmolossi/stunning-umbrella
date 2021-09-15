@@ -36,6 +36,11 @@ func (r *Requester) getUrl() string {
 	return fmt.Sprintf("%s/api/recruiter/%s/access-level", baseURL, r.UsrId)
 }
 
+func (r *Requester) ping() string {
+	baseURL := os.Getenv("BASE_URL")
+	return fmt.Sprintf("%s/ping", baseURL)
+}
+
 func (r *Requester) mountRequest() (*http.Request, error) {
 	//url := r.ping()
 	//method := "GET"
