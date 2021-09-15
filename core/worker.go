@@ -50,7 +50,9 @@ func (w *Worker) ExtractIdsFromFile(filename string) error {
 }
 
 func (w *Worker) WorkerRunner(done chan bool) {
-	err := w.ExtractIdsFromFile("./mock.csv")
+	filename := os.Getenv("FILENAME")
+
+	err := w.ExtractIdsFromFile(filename)
 	if err != nil {
 		log.Fatalf("Erro ao extrair o arquivo")
 	}
