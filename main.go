@@ -18,7 +18,7 @@ func main() {
 	err = worker.Start()
 
 	elapsed := time.Since(start)
-	fmt.Printf("Tempo de processamento com %d workers: %s", worker.Workers, elapsed)
+	fmt.Printf("Tempo de processamento com %d workers: %s\n", worker.Workers, elapsed)
 
 	if err != nil {
 		log.Fatalf(err.Error())
